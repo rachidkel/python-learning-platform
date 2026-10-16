@@ -1,0 +1,339 @@
+// ============================================================
+// Python Learning Platform — Database Schema
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTHENTICATION (NextAuth)
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          String    @default("STUDENT") // STUDENT | ADMIN
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  progress      Progress[]
+  quizAttempts  QuizAttempt[]
+  submissions   MissionSubmission[]
+  projectSubs   ProjectSubmission[]
+  certificates  Certificate[]
+  revisionItems RevisionItem[]
+  xpEvents      XpEvent[]
+  achievements  UserAchievement[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// COURSES & LESSONS
+// ============================================================
+
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  level       String   // BEGINNER | INTERMEDIATE | ADVANCED
+  order       Int      @default(0)
+  icon        String?
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons Lesson[]
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  slug        String
+  title       String
+  content     String   // Markdown lesson content
+  order       Int      @default(0)
+  estimatedMin Int     @default(10)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quizzes   Quiz[]
+  progress  Progress[]
+
+  @@unique([courseId, slug])
+}
+
+// ============================================================
+// QUIZZES
+// ============================================================
+
+model Quiz {
+  id          String   @id @default(cuid())
+  lessonId    String
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+
+  lesson    Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions Question[]
+  attempts  QuizAttempt[]
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  quizId      String
+  prompt      String   // The question text
+  codeSnippet String?  // Optional code block
+  type        String   @default("MULTIPLE_CHOICE") // MULTIPLE_CHOICE | PREDICT_OUTPUT
+  explanation String?  // Shown after answering
+  order       Int      @default(0)
+
+  quiz    Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  choices Choice[]
+}
+
+model Choice {
+  id         String  @id @default(cuid())
+  questionId String
+  text       String
+  isCorrect  Boolean @default(false)
+  order      Int     @default(0)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model QuizAttempt {
+  id         String   @id @default(cuid())
+  userId     String
+  quizId     String
+  score      Int      // Number of correct answers
+  total      Int      // Total questions
+  answers    String   // JSON string of { questionId: choiceId }
+  completedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// CODING MISSIONS
+// ============================================================
+
+model Mission {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  title        String
+  description  String   // Markdown with objective, instructions
+  difficulty   String   // EASY | MEDIUM | HARD
+  starterCode  String   // Python starter code
+  solution     String?  // Reference solution
+  tests        String   // JSON: [{ input, expectedOutput }]
+  xpReward     Int      @default(50)
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  submissions MissionSubmission[]
+}
+
+model MissionSubmission {
+  id         String   @id @default(cuid())
+  userId     String
+  missionId  String
+  code       String
+  passed     Boolean  @default(false)
+  output     String?
+  submittedAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// PROJECTS & CERTIFICATES
+// ============================================================
+
+model Project {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  requirements String  // JSON: [{ description, test }]
+  starterCode String
+  level       String   // BEGINNER | INTERMEDIATE | ADVANCED
+  createdAt   DateTime @default(now())
+
+  submissions ProjectSubmission[]
+  certificates Certificate[]
+}
+
+model ProjectSubmission {
+  id         String   @id @default(cuid())
+  userId     String
+  projectId  String
+  code       String
+  passed     Boolean  @default(false)
+  feedback   String?
+  submittedAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Certificate {
+  id           String   @id @default(cuid())
+  userId       String
+  projectId    String?
+  courseId     String?
+  title        String
+  issuedAt     DateTime @default(now())
+  certificateId String  @unique @default(cuid())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+// ============================================================
+// SMART REVISION SYSTEM
+// ============================================================
+
+model RevisionItem {
+  id            String   @id @default(cuid())
+  userId        String
+  questionId    String
+  interval      Int      @default(1)      // Days until next review
+  easeFactor    Float    @default(2.5)    // SM-2 algorithm
+  repetitions   Int      @default(0)
+  lastReviewed  DateTime @default(now())
+  nextReviewAt  DateTime
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
+}
+
+// ============================================================
+// PROGRESS & GAMIFICATION
+// ============================================================
+
+model Progress {
+  id            String   @id @default(cuid())
+  userId        String
+  lessonId      String
+  completed     Boolean  @default(false)
+  completedAt   DateTime?
+  timeSpentSec  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model XpEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    String   // QUIZ_COMPLETED | MISSION_COMPLETED | LESSON_COMPLETED | STREAK
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  icon        String
+  xpReward    Int      @default(0)
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+}
+
+// ============================================================
+// AI TUTOR CONVERSATIONS
+// ============================================================
+
+model AiConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("New conversation")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages AiMessage[]
+}
+
+model AiMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String   // user | assistant | system
+  content        String
+  createdAt      DateTime @default(now())
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
