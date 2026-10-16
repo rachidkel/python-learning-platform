@@ -29,7 +29,7 @@
     "date-fns": "^4.4.0",
     "lucide-react": "^1.58.0",
     "next": "16.4.2",
-    "next-auth": "^4.24.15",
+    "next-auth": "^5.0.0-beta.32",
     "pyodide": "^314.0.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
