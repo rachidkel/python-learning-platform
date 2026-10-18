@@ -63,3 +63,28 @@ export async function runPython(code: string): Promise<string> {
 
   return output.trim() || "(no output)";
 }
+
+// Run tests against user code and return pass/fail
+export async function runTests(userCode: string, testsJson: string) {
+  const tests = JSON.parse(testsJson);
+  const pyodide = await getPyodide();
+  let results = [];
+
+  for (const test of tests) {
+    let output = "";
+    pyodide.setStdout({ batched: (str) => { output += str + "\n"; } });
+    
+    try {
+      // Combine user code with a test call
+      const finalCode = `${userCode}\n\n${test.testCode}`;
+      await pyodide.runPythonAsync(finalCode);
+      
+      const passed = output.trim() === test.expectedOutput.trim();
+      results.push({ passed, expected: test.expectedOutput, actual: output.trim() });
+    } catch (err: any) {
+      results.push({ passed: false, expected: test.expectedOutput, actual: `Error: ${err.message}` });
+    }
+  }
+  
+  return results;
+}

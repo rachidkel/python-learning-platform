@@ -43,7 +43,7 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto max-w-6xl space-y-8">
       <Link
         href={`/courses/${lesson.course.slug}`}
         className="inline-flex items-center gap-1 text-sm text-ink-600 hover:text-ink-900"
@@ -72,8 +72,10 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
         </h1>
       </div>
 
+      {/* Main content grid */}
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Lesson content with custom Markdown styling */}
+        
+        {/* Left column: Lesson Content */}
         <div>
           <Card>
             <CardContent className="lesson-content max-w-none p-8">
@@ -174,8 +176,8 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
           </Card>
         </div>
 
-        {/* Code editor */}
-        <div>
+        {/* Right column: Sticky Code Editor */}
+        <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]">
           <PythonEditor />
         </div>
       </div>

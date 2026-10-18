@@ -2,8 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import { useState } from "react";
-import { LogOut, Flame, Zap, ChevronDown } from "lucide-react";
-import { Button } from "@/src/components/ui/button";
+import { LogOut, Flame, Zap, ChevronDown, Menu } from "lucide-react";
 
 interface TopbarProps {
   user: {
@@ -11,9 +10,12 @@ interface TopbarProps {
     email?: string | null;
     image?: string | null;
   };
+  xp: number;
+  streak: number;
+  onOpenMenu: () => void;
 }
 
-export function Topbar({ user }: TopbarProps) {
+export function Topbar({ user, xp, streak, onOpenMenu }: TopbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const initials = (user.name || user.email || "?")
     .split(" ")
@@ -23,29 +25,38 @@ export function Topbar({ user }: TopbarProps) {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-ink-200 bg-white/80 px-6 backdrop-blur-md">
-      <div className="flex items-center gap-4">
-        <h2 className="text-sm font-medium text-ink-500">Welcome back 👋</h2>
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-ink-200 bg-white/80 px-4 md:px-6 backdrop-blur-md">
+      <div className="flex items-center gap-3">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={onOpenMenu}
+          className="md:hidden rounded-md p-2 text-ink-600 hover:bg-ink-100 transition"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <h2 className="hidden text-sm font-medium text-ink-500 md:block">
+          Welcome back 👋
+        </h2>
       </div>
 
-      <div className="flex items-center gap-3">
-        {/* XP */}
-        <div className="hidden items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 md:flex">
+      <div className="flex items-center gap-2 md:gap-3">
+        {/* XP Badge */}
+        <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
           <Zap className="h-3.5 w-3.5" />
-          0 XP
+          {xp} XP
         </div>
 
-        {/* Streak */}
-        <div className="hidden items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 md:flex">
+        {/* Streak Badge */}
+        <div className="flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
           <Flame className="h-3.5 w-3.5" />
-          0 days
+          {streak}
         </div>
 
-        {/* User menu */}
-        <div className="relative">
+        {/* User Menu */}
+        <div className="relative ml-1">
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-full border border-ink-200 bg-white px-2 py-1 transition hover:bg-ink-50"
+            className="flex items-center gap-2 rounded-full border border-ink-200 bg-white py-1 pl-1 pr-2 transition hover:bg-ink-50 md:pl-2 md:pr-3"
           >
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white">
               {initials}
@@ -53,7 +64,7 @@ export function Topbar({ user }: TopbarProps) {
             <span className="hidden text-sm font-medium text-ink-800 md:block">
               {user.name || user.email}
             </span>
-            <ChevronDown className="h-3.5 w-3.5 text-ink-400" />
+            <ChevronDown className="hidden h-3.5 w-3.5 text-ink-400 md:block" />
           </button>
 
           {menuOpen && (
@@ -64,7 +75,7 @@ export function Topbar({ user }: TopbarProps) {
               />
               <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-ink-200 bg-white p-1 shadow-lg">
                 <div className="border-b border-ink-100 px-3 py-2">
-                  <p className="text-sm font-medium text-ink-900">
+                  <p className="text-sm font-medium text-ink-900 truncate">
                     {user.name}
                   </p>
                   <p className="truncate text-xs text-ink-500">{user.email}</p>

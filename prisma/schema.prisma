@@ -169,19 +169,16 @@ model QuizAttempt {
 // ============================================================
 
 model Mission {
-  id           String   @id @default(cuid())
-  slug         String   @unique
-  title        String
-  description  String   // Markdown with objective, instructions
-  difficulty   String   // EASY | MEDIUM | HARD
-  starterCode  String   // Python starter code
-  solution     String?  // Reference solution
-  tests        String   // JSON: [{ input, expectedOutput }]
-  xpReward     Int      @default(50)
-  order        Int      @default(0)
-  createdAt    DateTime @default(now())
-
-  submissions MissionSubmission[]
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  difficulty  String   // EASY, MEDIUM, HARD
+  starterCode String
+  tests       String   // JSON: [{ input: "...", expected: "..." }]
+  xpReward    Int      @default(50)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
 }
 
 model MissionSubmission {

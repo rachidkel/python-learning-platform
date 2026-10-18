@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card";
 import { cn } from "@/src/lib/utils";
+import { awardQuizXp } from "@/src/lib/actions"; // 👈 NEW IMPORT
 
 interface Choice {
   id: string;
@@ -35,9 +36,7 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
   const [finished, setFinished] = useState(false);
 
   const current = questions[currentIndex];
-  const selectedChoiceObj = current?.choices.find(
-    (c) => c.id === selectedChoice
-  );
+  const selectedChoiceObj = current?.choices.find((c) => c.id === selectedChoice);
 
   function handleSubmit() {
     if (!selectedChoice) return;
@@ -50,10 +49,15 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
   function handleNext() {
     if (currentIndex + 1 >= questions.length) {
       setFinished(true);
-      onComplete?.(
-        selectedChoiceObj?.isCorrect ? correctCount : correctCount,
-        questions.length
-      );
+      const finalScore = correctCount + (selectedChoiceObj?.isCorrect ? 1 : 0);
+      
+      // 👈 NEW: Award XP if they pass (70% or higher)
+      const percent = Math.round((finalScore / questions.length) * 100);
+      if (percent >= 70) {
+         awardQuizXp(15, "QUIZ_PASSED"); 
+      }
+      
+      onComplete?.(finalScore, questions.length);
     } else {
       setCurrentIndex((i) => i + 1);
       setSelectedChoice(null);
@@ -61,7 +65,6 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
     }
   }
 
-  // ─── Results screen ─────────────────────────────
   if (finished) {
     const finalScore = correctCount;
     const percent = Math.round((finalScore / questions.length) * 100);
@@ -81,12 +84,10 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
             <p
               className={cn(
                 "mt-4 inline-block rounded-full px-4 py-1 text-sm font-semibold",
-                passed
-                  ? "bg-brand-100 text-brand-700"
-                  : "bg-amber-100 text-amber-700"
+                passed ? "bg-brand-100 text-brand-700" : "bg-amber-100 text-amber-700"
               )}
             >
-              {passed ? "🎉 Passed!" : "Keep practicing"}
+              {passed ? "🎉 Passed! (+15 XP)" : "Keep practicing"}
             </p>
           </div>
           <Button
@@ -106,7 +107,6 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
     );
   }
 
-  // ─── Question screen ────────────────────────────
   return (
     <Card>
       <CardHeader>
@@ -131,8 +131,7 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
             {current.choices.map((choice) => {
               const isSelected = selectedChoice === choice.id;
               const showCorrect = submitted && choice.isCorrect;
-              const showWrong =
-                submitted && isSelected && !choice.isCorrect;
+              const showWrong = submitted && isSelected && !choice.isCorrect;
 
               return (
                 <button

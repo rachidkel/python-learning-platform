@@ -3,27 +3,30 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
-
-interface MarkCompleteButtonProps {
-  lessonId: string;
-  slug: string;
-  completed: boolean;
-}
+import { markLessonComplete } from "@/src/lib/actions";
 
 export function MarkCompleteButton({
   lessonId,
   slug,
   completed,
-}: MarkCompleteButtonProps) {
+}: {
+  lessonId: string;
+  slug: string;
+  completed: boolean;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
     setLoading(true);
     try {
-      const { markLessonComplete } = await import("../app/(dashboard)/lessons/[slug]/actions");
       await markLessonComplete(lessonId, slug);
+      // Refresh the data
       router.refresh();
+      // Wait a tiny bit, then force a hard refresh to update the Topbar
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch {
       setLoading(false);
     }
