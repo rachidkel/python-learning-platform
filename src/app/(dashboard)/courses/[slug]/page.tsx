@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BookOpen, CheckCircle2, Clock, PlayCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, PlayCircle, Award } from "lucide-react";
 import { prisma } from "@/src/lib/prisma";
 import { auth } from "@/src/lib/auth";
 import { Card, CardContent } from "@/src/components/ui/card";
@@ -32,6 +32,10 @@ async function CourseDetail({ params }: { params: Promise<{ slug: string }> }) {
   const completedIds = new Set(
     progress.filter((p) => p.completed).map((p) => p.lessonId)
   );
+
+  // Check if the user has completed every single lesson in this course
+  const completedCount = progress.filter((p) => p.completed).length;
+  const isCourseComplete = course.lessons.length > 0 && completedCount === course.lessons.length;
 
   const levelVariant =
     course.level === "BEGINNER"
@@ -91,6 +95,25 @@ async function CourseDetail({ params }: { params: Promise<{ slug: string }> }) {
           })}
         </div>
       </div>
+
+      {/* 👇 Certificate Section (Shows only when 100% complete) */}
+      {isCourseComplete && (
+        <div className="mt-12 rounded-2xl border-4 border-brand-500 bg-gradient-to-br from-brand-50 to-white p-8 text-center shadow-xl">
+          <Award className="mx-auto h-16 w-16 text-brand-600 mb-4" />
+          <h2 className="text-3xl font-bold text-ink-900 mb-2">Course Completed! 🎉</h2>
+          <p className="text-ink-600 mb-6">
+            Congratulations! You have finished all lessons in {course.title}.
+          </p>
+          <a
+            href={`/api/certificate/${course.slug}`}
+            target="_blank"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-brand-700"
+          >
+            <Award className="h-5 w-5" />
+            Download Certificate (PDF)
+          </a>
+        </div>
+      )}
     </div>
   );
 }

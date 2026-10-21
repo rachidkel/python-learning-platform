@@ -9,6 +9,7 @@ async function main() {
   await prisma.quiz.deleteMany();
   await prisma.lesson.deleteMany();
   await prisma.course.deleteMany();
+  await prisma.mission.deleteMany();
 
   // ═══════════════════════════════════════════════════════
   // COURSE 1: PYTHON FUNDAMENTALS
@@ -92,7 +93,7 @@ print(2 + 2)
     },
   });
 
-  // --- Lesson 2: Variables & Data Types ---
+  // --- Lesson 2: Variables & Data Types (UPDATED WITH BEAUTIFUL MARKDOWN) ---
   await prisma.lesson.create({
     data: {
       courseId: fundamentals.id,
@@ -102,7 +103,7 @@ print(2 + 2)
       estimatedMin: 10,
       content: `# Variables & Data Types
 
-Variables are containers for storing data. Python is dynamically typed — you don't declare the type.
+Variables are containers for storing data. Python is **dynamically typed** — you don't declare the type.
 
 ## Creating variables
 
@@ -126,11 +127,15 @@ is_student = True
 
 ## Type Conversion (Casting)
 
+Sometimes you need to change a value from one type to another.
+
 \`\`\`python
 x = "10"       # String
 y = int(x)     # Now an integer (10)
 z = float(y)   # Now a float (10.0)
-\`\`\``,
+\`\`\`
+
+> 💡 **Pro Tip:** Use \`type(variable)\` to check the type of any variable!`,
     },
   });
 
@@ -1106,7 +1111,6 @@ Read and write files using Python's \`open()\` function.
 ## Reading a file
 
 \`\`\`python
-# With 'with', the file closes automatically
 with open("data.txt", "r") as f:
     content = f.read()
     print(content)
@@ -1127,11 +1131,90 @@ with open("output.txt", "w") as f:
 | \`r\` | Read (default) |
 | \`w\` | Write (overwrites) |
 | \`a\` | Append |
-| \`rb\` | Read binary (images, PDFs) |
-| \`wb\` | Write binary |
 
-> ⚠️ **Always use \`with\`** — it guarantees the file is closed even if an error occurs.`,
+> ⚠️ **Always use \`with\`** — it guarantees the file is closed.`,
     },
+  });
+
+  // ═══════════════════════════════════════════════════════
+  // CODING MISSIONS
+  // ═══════════════════════════════════════════════════════
+  
+  await prisma.mission.createMany({
+    data: [
+      {
+        slug: "sum-two-numbers",
+        title: "Sum Two Numbers",
+        description: "Write a function called `add` that takes two numbers and returns their sum.",
+        difficulty: "EASY",
+        starterCode: "def add(a, b):\n    # Write your code here\n    pass\n",
+        xpReward: 30,
+        order: 1,
+        tests: JSON.stringify([
+          { testCode: "print(add(2, 3))", expectedOutput: "5" },
+          { testCode: "print(add(10, -5))", expectedOutput: "5" }
+        ])
+      },
+      {
+        slug: "reverse-string",
+        title: "Reverse a String",
+        description: "Write a function called `reverse_text` that takes a string and returns it reversed.\n\n*Hint: Python strings can be sliced using `[::-1]`*",
+        difficulty: "EASY",
+        starterCode: "def reverse_text(text):\n    # Write your code here\n    pass\n",
+        xpReward: 40,
+        order: 2,
+        tests: JSON.stringify([
+          { testCode: "print(reverse_text('hello'))", expectedOutput: "olleh" },
+          { testCode: "print(reverse_text('Python'))", expectedOutput: "nohtyP" }
+        ])
+      },
+      {
+        slug: "count-vowels",
+        title: "Count Vowels",
+        description: "Write a function called `count_vowels` that counts how many vowels (a, e, i, o, u) are in a given string. Ignore case.",
+        difficulty: "MEDIUM",
+        starterCode: "def count_vowels(text):\n    # Write your code here\n    pass\n",
+        xpReward: 60,
+        order: 3,
+        tests: JSON.stringify([
+          { testCode: "print(count_vowels('hello'))", expectedOutput: "2" },
+          { testCode: "print(count_vowels('AEIOU'))", expectedOutput: "5" },
+          { testCode: "print(count_vowels('xyz'))", expectedOutput: "0" }
+        ])
+      }
+    ]
+  });
+
+    // ═══════════════════════════════════════════════════════
+  // PROJECTS
+  // ═══════════════════════════════════════════════════════
+  
+  await prisma.project.deleteMany(); // Clean old projects
+
+  await prisma.project.createMany({
+    data: [
+      {
+        slug: "calculator",
+        title: "Build a Calculator",
+        description: "Create a simple calculator function that takes two numbers and an operator (+, -, *, /) and returns the result.",
+        level: "BEGINNER",
+        starterCode: "def calculate(num1, operator, num2):\n    # Write your code here\n    pass\n",
+        requirements: JSON.stringify([
+          { description: "Handles addition", test: "print(calculate(5, '+', 3))" },
+          { description: "Handles division", test: "print(calculate(10, '/', 2))" }
+        ])
+      },
+      {
+        slug: "grade-manager",
+        title: "Student Grade Manager",
+        description: "Write a function called `get_average` that takes a list of student dictionaries (each with a 'name' and 'grade') and returns the average grade.",
+        level: "INTERMEDIATE",
+        starterCode: "def get_average(students):\n    # Write your code here\n    pass\n",
+        requirements: JSON.stringify([
+          { description: "Calculates the average", test: "print(get_average([{'name': 'A', 'grade': 90}, {'name': 'B', 'grade': 80}]))" }
+        ])
+      }
+    ]
   });
 
   console.log("✅ Seed complete!");
@@ -1139,6 +1222,7 @@ with open("output.txt", "w") as f:
   console.log(`   ${await prisma.lesson.count()} lessons`);
   console.log(`   ${await prisma.quiz.count()} quizzes`);
   console.log(`   ${await prisma.question.count()} questions`);
+  console.log(`   ${await prisma.mission.count()} missions`);
 }
 
 main()

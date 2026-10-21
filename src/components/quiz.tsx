@@ -1,39 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, RotateCcw } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card";
 import { cn } from "@/src/lib/utils";
-import { awardQuizXp } from "@/src/lib/actions"; // 👈 NEW IMPORT
+import { completeQuiz } from "@/src/lib/actions";
+import { useRouter } from "next/navigation";
 
-interface Choice {
-  id: string;
-  text: string;
-  isCorrect: boolean;
-}
-
-interface Question {
-  id: string;
-  prompt: string;
-  codeSnippet?: string | null;
-  explanation?: string | null;
-  choices: Choice[];
-}
+interface Choice { id: string; text: string; isCorrect: boolean; }
+interface Question { id: string; prompt: string; codeSnippet?: string | null; explanation?: string | null; choices: Choice[]; }
 
 interface QuizProps {
   quizId: string;
   title: string;
   questions: Question[];
-  onComplete?: (score: number, total: number) => void;
+  hasPassedBefore?: boolean;
 }
 
-export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
+export function Quiz({ quizId, title, questions, hasPassedBefore = false }: QuizProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
+  const [wrongQuestions, setWrongQuestions] = useState<string[]>([]);
   const [finished, setFinished] = useState(false);
+  
+  const [isCompleted, setIsCompleted] = useState(hasPassedBefore);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const router = useRouter();
 
   const current = questions[currentIndex];
   const selectedChoiceObj = current?.choices.find((c) => c.id === selectedChoice);
@@ -43,26 +38,54 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
     setSubmitted(true);
     if (selectedChoiceObj?.isCorrect) {
       setCorrectCount((c) => c + 1);
+    } else {
+      setWrongQuestions((prev) => [...prev, current.id]);
     }
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (currentIndex + 1 >= questions.length) {
       setFinished(true);
       const finalScore = correctCount + (selectedChoiceObj?.isCorrect ? 1 : 0);
-      
-      // 👈 NEW: Award XP if they pass (70% or higher)
       const percent = Math.round((finalScore / questions.length) * 100);
-      if (percent >= 70) {
-         awardQuizXp(15, "QUIZ_PASSED"); 
-      }
       
-      onComplete?.(finalScore, questions.length);
+      if (percent >= 70) {
+         await completeQuiz(quizId, finalScore, questions.length, 15, wrongQuestions);
+         router.refresh();
+      }
     } else {
       setCurrentIndex((i) => i + 1);
       setSelectedChoice(null);
       setSubmitted(false);
     }
+  }
+
+  function handleRetry() {
+    setIsRetrying(true);
+    setIsCompleted(false);
+    setFinished(false);
+    setCurrentIndex(0);
+    setSelectedChoice(null);
+    setSubmitted(false);
+    setCorrectCount(0);
+    setWrongQuestions([]);
+  }
+
+  if (isCompleted && !isRetrying) {
+    return (
+      <Card className="border-emerald-200 bg-emerald-50">
+        <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+          <CheckCircle2 className="h-12 w-12 text-emerald-600 mb-4" />
+          <h3 className="text-xl font-bold text-emerald-900 mb-2">Quiz Passed!</h3>
+          <p className="text-sm text-emerald-700 mb-6">
+            You have already completed this quiz and earned your XP.
+          </p>
+          <Button onClick={handleRetry} variant="outline" className="bg-white">
+            <RotateCcw className="mr-2 h-4 w-4" /> Retry for Practice (No XP)
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (finished) {
@@ -81,25 +104,14 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
             <p className="mt-2 text-sm text-ink-600">
               You got {finalScore} out of {questions.length} correct
             </p>
-            <p
-              className={cn(
-                "mt-4 inline-block rounded-full px-4 py-1 text-sm font-semibold",
-                passed ? "bg-brand-100 text-brand-700" : "bg-amber-100 text-amber-700"
-              )}
-            >
-              {passed ? "🎉 Passed! (+15 XP)" : "Keep practicing"}
+            <p className={cn(
+              "mt-4 inline-block rounded-full px-4 py-1 text-sm font-semibold",
+              passed ? "bg-brand-100 text-brand-700" : "bg-amber-100 text-amber-700"
+            )}>
+              {passed ? "🎉 Passed!" : "Keep practicing"}
             </p>
           </div>
-          <Button
-            className="w-full"
-            onClick={() => {
-              setCurrentIndex(0);
-              setSelectedChoice(null);
-              setSubmitted(false);
-              setCorrectCount(0);
-              setFinished(false);
-            }}
-          >
+          <Button className="w-full" onClick={handleRetry}>
             Retake quiz
           </Button>
         </CardContent>
@@ -147,22 +159,14 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
                     submitted && !showCorrect && !showWrong && "border-ink-200 opacity-60"
                   )}
                 >
-                  <span
-                    className={cn(
-                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
-                      isSelected && !submitted && "border-brand-500 bg-brand-500 text-white",
-                      !isSelected && !submitted && "border-ink-300 text-ink-500",
-                      showCorrect && "border-emerald-500 bg-emerald-500 text-white",
-                      showWrong && "border-rose-500 bg-rose-500 text-white"
-                    )}
-                  >
-                    {showCorrect ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : showWrong ? (
-                      <XCircle className="h-4 w-4" />
-                    ) : (
-                      String.fromCharCode(65 + current.choices.indexOf(choice))
-                    )}
+                  <span className={cn(
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
+                    isSelected && !submitted && "border-brand-500 bg-brand-500 text-white",
+                    !isSelected && !submitted && "border-ink-300 text-ink-500",
+                    showCorrect && "border-emerald-500 bg-emerald-500 text-white",
+                    showWrong && "border-rose-500 bg-rose-500 text-white"
+                  )}>
+                    {showCorrect ? <CheckCircle2 className="h-4 w-4" /> : showWrong ? <XCircle className="h-4 w-4" /> : String.fromCharCode(65 + current.choices.indexOf(choice))}
                   </span>
                   <span className="flex-1">{choice.text}</span>
                 </button>
@@ -179,13 +183,9 @@ export function Quiz({ quizId, title, questions, onComplete }: QuizProps) {
 
         <div className="flex justify-end">
           {!submitted ? (
-            <Button onClick={handleSubmit} disabled={!selectedChoice}>
-              Submit answer
-            </Button>
+            <Button onClick={handleSubmit} disabled={!selectedChoice}>Submit answer</Button>
           ) : (
-            <Button onClick={handleNext}>
-              {currentIndex + 1 >= questions.length ? "See results" : "Next question"}
-            </Button>
+            <Button onClick={handleNext}>{currentIndex + 1 >= questions.length ? "See results" : "Next question"}</Button>
           )}
         </div>
       </CardContent>

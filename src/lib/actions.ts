@@ -10,33 +10,19 @@ export async function markLessonComplete(lessonId: string, slug: string) {
 
   const userId = session.user.id;
 
-  // 1. Mark lesson as complete
   await prisma.progress.upsert({
-    where: {
-      userId_lessonId: {
-        userId,
-        lessonId,
-      },
-    },
+    where: { userId_lessonId: { userId, lessonId } },
     update: { completed: true, completedAt: new Date() },
     create: { userId, lessonId, completed: true, completedAt: new Date() },
   });
 
-  // 2. Award XP (only if they haven't gotten it for this lesson yet)
   const existingXp = await prisma.xpEvent.findFirst({
-    where: {
-      userId,
-      reason: `LESSON_COMPLETED_${lessonId}`,
-    },
+    where: { userId, reason: `LESSON_COMPLETED_${lessonId}` },
   });
 
   if (!existingXp) {
     await prisma.xpEvent.create({
-      data: {
-        userId,
-        amount: 20, // 20 XP per lesson
-        reason: `LESSON_COMPLETED_${lessonId}`,
-      },
+      data: { userId, amount: 20, reason: `LESSON_COMPLETED_${lessonId}` },
     });
   }
 
@@ -45,19 +31,71 @@ export async function markLessonComplete(lessonId: string, slug: string) {
   return { success: true };
 }
 
-// ── This is the function used by the Quiz component ──
-export async function awardQuizXp(amount: number, reason: string) {
+export async function completeMission(missionId: string, xpReward: number, code: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
 
-  await prisma.xpEvent.create({
-    data: {
-      userId: session.user.id,
-      amount,
-      reason,
-    },
+  const userId = session.user.id;
+
+  await prisma.missionSubmission.create({
+    data: { userId, missionId, code, passed: true },
   });
-  
-  // Refresh the dashboard so the XP badge updates
+
+  const existingXp = await prisma.xpEvent.findFirst({
+    where: { userId, reason: `MISSION_${missionId}` },
+  });
+
+  if (!existingXp) {
+    await prisma.xpEvent.create({
+      data: { userId, amount: xpReward, reason: `MISSION_${missionId}` },
+    });
+  }
+
+  revalidatePath("/missions");
   revalidatePath("/dashboard");
+  return { success: true, isFirstTime: !existingXp };
+}
+
+export async function completeQuiz(
+  quizId: string,
+  score: number,
+  total: number,
+  xpReward: number,
+  wrongQuestionIds: string[] = []
+) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+
+  const userId = session.user.id;
+
+  await prisma.quizAttempt.create({
+    data: { userId, quizId, score, total, answers: "{}" },
+  });
+
+  const existingXp = await prisma.xpEvent.findFirst({
+    where: { userId, reason: `QUIZ_PASSED_${quizId}` },
+  });
+
+  if (!existingXp) {
+    await prisma.xpEvent.create({
+      data: { userId, amount: xpReward, reason: `QUIZ_PASSED_${quizId}` },
+    });
+  }
+
+  // Add wrong questions to Smart Revision
+  for (const questionId of wrongQuestionIds) {
+    await prisma.revisionItem.upsert({
+      where: { userId_questionId: { userId, questionId } },
+      update: { nextReviewAt: new Date() },
+      create: {
+        userId,
+        questionId,
+        nextReviewAt: new Date(),
+      },
+    });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/revision");
+  return { success: true, isFirstTime: !existingXp };
 }

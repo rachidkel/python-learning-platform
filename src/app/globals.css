@@ -2,19 +2,16 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  /* Brand colors — Python Learning Platform */
   --color-brand-50:  #f0fdf4;
   --color-brand-100: #dcfce7;
   --color-brand-200: #bbf7d0;
   --color-brand-300: #86efac;
   --color-brand-400: #4ade80;
-  --color-brand-500: #22c55e;   /* primary green */
+  --color-brand-500: #22c55e;
   --color-brand-600: #16a34a;
   --color-brand-700: #15803d;
   --color-brand-800: #166534;
   --color-brand-900: #14532d;
-
-  /* Neutral grays */
   --color-ink-50:  #f8fafc;
   --color-ink-100: #f1f5f9;
   --color-ink-200: #e2e8f0;
@@ -25,24 +22,14 @@
   --color-ink-700: #334155;
   --color-ink-800: #1e293b;
   --color-ink-900: #0f172a;
-
-  /* Accent colors */
   --color-accent-amber: #f59e0b;
   --color-accent-red:   #ef4444;
   --color-accent-blue:  #3b82f6;
-
-  /* Fonts */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
-
-  /* Radius */
-  --radius-card: 0.75rem;
 }
 
-/* Base */
-html, body {
-  height: 100%;
-}
+html, body { height: 100%; }
 
 body {
   background-color: var(--color-ink-50);
@@ -51,38 +38,74 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--color-ink-100); }
-::-webkit-scrollbar-thumb {
-  background: var(--color-ink-300);
-  border-radius: 5px;
-}
-::-webkit-scrollbar-thumb:hover { background: var(--color-ink-400); }
+::-webkit-scrollbar-thumb { background: var(--color-ink-300); border-radius: 5px; }
 
-/* Code blocks */
-pre, code {
-  font-family: var(--font-mono);
-}
+pre, code { font-family: var(--font-mono); }
 
-/* Utility: gradient text */
 .text-gradient {
   background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
-/* Utility: subtle card shadow */
-.shadow-card {
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04);
-}
-
-/* Animations */
+.shadow-card { box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04); }
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-up {
-  animation: fadeInUp 0.4s ease-out both;
+.animate-fade-up { animation: fadeInUp 0.4s ease-out both; }
+
+/* ============================================================
+   THE ULTIMATE PRINT FIX
+   ============================================================ */
+@media print {
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+
+  /* Hide the sidebar, topbar, buttons, and AI Tutor */
+  aside, header, nav, .print\:hidden, button[aria-label="Open AI Tutor"] { 
+    display: none !important; 
+  }
+  
+  /* Reset the layout so it takes the full page */
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force the page container to be the exact size of the paper */
+  .print-page-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 9999;
+  }
+
+  /* Scale the certificate to fit perfectly inside the page */
+  .print-certificate {
+    width: 297mm !important; 
+    height: 210mm !important;
+    transform: scale(0.9); 
+    transform-origin: center;
+    box-sizing: border-box;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
 }

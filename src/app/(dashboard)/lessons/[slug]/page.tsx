@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { prisma } from "@/src/lib/prisma";
@@ -25,6 +25,14 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
 
   if (!lesson) notFound();
 
+  const nextLesson = await prisma.lesson.findFirst({
+    where: {
+      courseId: lesson.courseId,
+      order: { gt: lesson.order },
+    },
+    orderBy: { order: "asc" },
+  });
+
   let progressRecord = null;
   if (session?.user?.id) {
     progressRecord = await prisma.progress.upsert({
@@ -42,6 +50,16 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
     });
   }
 
+  let quizAttempts: any[] = [];
+  if (session?.user?.id) {
+    quizAttempts = await prisma.quizAttempt.findMany({
+      where: {
+        userId: session.user.id,
+        quizId: { in: lesson.quizzes.map((q) => q.id) },
+      },
+    });
+  }
+
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <Link
@@ -52,7 +70,6 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
         Back to {lesson.course.title}
       </Link>
 
-      {/* Header */}
       <div>
         <div className="mb-2 flex items-center gap-2 text-sm text-ink-500">
           <Link
@@ -72,10 +89,7 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
         </h1>
       </div>
 
-      {/* Main content grid */}
       <div className="grid gap-8 lg:grid-cols-2">
-        
-        {/* Left column: Lesson Content */}
         <div>
           <Card>
             <CardContent className="lesson-content max-w-none p-8">
@@ -176,38 +190,44 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
           </Card>
         </div>
 
-        {/* Right column: Sticky Code Editor */}
         <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]">
-          <PythonEditor />
+          {/* 👇 Added storageKey here */}
+          <PythonEditor storageKey={`lesson-${lesson.slug}`} />
         </div>
       </div>
 
-      {/* Quizzes */}
       {lesson.quizzes.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-xl font-bold">Practice</h2>
-          {lesson.quizzes.map((quiz) => (
-            <Quiz
-              key={quiz.id}
-              quizId={quiz.id}
-              title={quiz.title}
-              questions={quiz.questions.map((q) => ({
-                id: q.id,
-                prompt: q.prompt,
-                codeSnippet: q.codeSnippet,
-                explanation: q.explanation,
-                choices: q.choices.map((c) => ({
-                  id: c.id,
-                  text: c.text,
-                  isCorrect: c.isCorrect,
-                })),
-              }))}
-            />
-          ))}
+          {lesson.quizzes.map((quiz) => {
+            const pastAttempt = quizAttempts.find((a) => a.quizId === quiz.id);
+            const hasPassed = pastAttempt
+              ? pastAttempt.score / pastAttempt.total >= 0.7
+              : false;
+
+            return (
+              <Quiz
+                key={quiz.id}
+                quizId={quiz.id}
+                title={quiz.title}
+                hasPassedBefore={hasPassed}
+                questions={quiz.questions.map((q) => ({
+                  id: q.id,
+                  prompt: q.prompt,
+                  codeSnippet: q.codeSnippet,
+                  explanation: q.explanation,
+                  choices: q.choices.map((c) => ({
+                    id: c.id,
+                    text: c.text,
+                    isCorrect: c.isCorrect,
+                  })),
+                }))}
+              />
+            );
+          })}
         </div>
       )}
 
-      {/* Mark complete button */}
       {progressRecord && (
         <MarkCompleteButton
           lessonId={lesson.id}
@@ -215,6 +235,26 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
           completed={progressRecord.completed}
         />
       )}
+
+      <div className="flex justify-end border-t border-ink-200 pt-6 mt-8">
+        {nextLesson ? (
+          <Link
+            href={`/lessons/${nextLesson.slug}`}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-brand-700"
+          >
+            Next Lesson: {nextLesson.title}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        ) : (
+          <Link
+            href={`/courses/${lesson.course.slug}`}
+            className="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-6 py-3 text-sm font-medium text-ink-700 transition hover:bg-ink-50"
+          >
+            <CheckCircle2 className="h-4 w-4 text-brand-600" />
+            You finished this course! Go back to overview
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

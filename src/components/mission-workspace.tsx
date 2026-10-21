@@ -1,73 +1,149 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
-import { Play, CheckCircle2, XCircle } from "lucide-react";
+import { Play, CheckCircle2, XCircle, Loader2, Award, Sparkles, RotateCcw } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
-import { runTests } from "@/src/lib/pyodide";
-import { awardQuizXp } from "@/src/lib/actions"; // Reuse XP function
+import { completeMission } from "@/src/lib/actions";
+import { useRouter } from "next/navigation";
 
-export function MissionWorkspace({ missionId, initialCode, tests, xpReward }: any) {
-  const [code, setCode] = useState(initialCode);
+export function MissionWorkspace({
+  missionId,
+  initialCode,
+  savedCode,
+  isCompleted,
+  xpReward,
+  description,
+}: any) {
+  const [code, setCode] = useState(isCompleted ? savedCode : initialCode);
   const [running, setRunning] = useState(false);
-  const [results, setResults] = useState<any[] | null>(null);
+  const [result, setResult] = useState<{ passed: boolean; feedback: string } | null>(null);
+  const [hasPassedNow, setHasPassedNow] = useState(isCompleted);
+  const [isRetrying, setIsRetrying] = useState(false);
+  
+  const router = useRouter();
+  const storageKey = `mission-${missionId}`;
+
+  useEffect(() => {
+    if (!isCompleted) {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) setCode(saved);
+    }
+  }, [storageKey, isCompleted]);
+
+  function handleCodeChange(value: string | undefined) {
+    const newCode = value || "";
+    setCode(newCode);
+    if (!isCompleted) {
+      localStorage.setItem(storageKey, newCode);
+    }
+  }
 
   async function handleTest() {
     setRunning(true);
-    setResults(null);
+    setResult(null);
+
     try {
-      const res = await runTests(code, tests);
-      setResults(res);
+      const res = await fetch("/api/grade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, missionDescription: description }),
+      });
+
+      const data = await res.json();
       
-      // If all passed, award XP!
-      if (res.every((r: any) => r.passed)) {
-         await awardQuizXp(xpReward, `MISSION_${missionId}`);
+      if (data.error) {
+        setResult({ passed: false, feedback: data.error });
+      } else {
+        setResult(data);
+        if (data.passed) {
+          setHasPassedNow(true);
+          await completeMission(missionId, xpReward, code);
+          localStorage.removeItem(storageKey);
+          router.refresh();
+        }
       }
     } catch (e) {
-      console.error(e);
+      setResult({ passed: false, feedback: "Network error. Please try again." });
     } finally {
       setRunning(false);
     }
   }
 
+  function handleRetry() {
+    setIsRetrying(true);
+    setHasPassedNow(false);
+    setResult(null);
+    setCode(initialCode);
+    localStorage.setItem(storageKey, initialCode);
+  }
+
+  if (hasPassedNow && !isRetrying) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center">
+          <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600 mb-4" />
+          <h2 className="text-2xl font-bold text-emerald-900 mb-2">Mission Completed!</h2>
+          <p className="text-emerald-700 mb-6">
+            You have already solved this challenge. Your code and XP are saved.
+          </p>
+          <Button onClick={handleRetry} variant="outline" className="bg-white">
+            <RotateCcw className="mr-2 h-4 w-4" /> Retry for Practice (No XP)
+          </Button>
+        </div>
+        
+        <div className="h-[400px] overflow-hidden rounded-xl border border-ink-200 shadow-sm opacity-80 pointer-events-none">
+          <Editor
+            height="100%"
+            defaultLanguage="python"
+            value={code}
+            theme="vs-dark"
+            options={{ readOnly: true, minimap: { enabled: false }, fontSize: 14 }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      {/* Editor */}
-      <div className="h-[500px] border rounded-xl overflow-hidden shadow-sm">
+      <div className="h-[400px] lg:h-[500px] overflow-hidden rounded-xl border border-ink-200 shadow-sm">
         <Editor
           height="100%"
           defaultLanguage="python"
           value={code}
-          onChange={(v) => setCode(v || "")}
+          onChange={handleCodeChange}
           theme="vs-dark"
+          options={{ minimap: { enabled: false }, fontSize: 14 }}
         />
       </div>
 
-      {/* Test Results Panel */}
       <div className="flex flex-col gap-4">
         <Button onClick={handleTest} disabled={running} size="lg" className="w-full">
-          {running ? "Running Tests..." : "▶ Submit for Testing"}
+          {running ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> AI is grading your code...</>
+          ) : (
+            <><Sparkles className="mr-2 h-4 w-4" /> Submit to AI Grader</>
+          )}
         </Button>
 
-        {results && (
-          <div className="rounded-xl border bg-white p-4">
-            <h3 className="font-bold mb-4">Test Results</h3>
-            <div className="space-y-3">
-              {results.map((r, i) => (
-                <div key={i} className={`p-3 rounded-lg border ${r.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
-                  <div className="flex items-center gap-2 font-medium">
-                    {r.passed ? <CheckCircle2 className="text-emerald-600 h-5 w-5" /> : <XCircle className="text-rose-600 h-5 w-5" />}
-                    Test {i + 1}: {r.passed ? "Passed" : "Failed"}
-                  </div>
-                  {!r.passed && (
-                    <div className="mt-2 text-sm font-mono bg-white p-2 rounded border">
-                      <div className="text-rose-600">Expected: {r.expected}</div>
-                      <div className="text-ink-600">Actual: {r.actual}</div>
-                    </div>
-                  )}
-                </div>
-              ))}
+        {result && (
+          <div className={`rounded-xl border p-4 ${result.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+            <div className="flex items-center gap-2 font-bold text-lg mb-2">
+              {result.passed ? (
+                <><CheckCircle2 className="text-emerald-600 h-6 w-6" /> Mission Accomplished!</>
+              ) : (
+                <><XCircle className="text-rose-600 h-6 w-6" /> Try Again</>
+              )}
             </div>
+            
+            <p className="text-sm text-ink-700 mb-3">{result.feedback}</p>
+            
+            {result.passed && (
+              <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-100 p-2 rounded">
+                <Award className="h-4 w-4" /> You earned {xpReward} XP!
+              </div>
+            )}
           </div>
         )}
       </div>

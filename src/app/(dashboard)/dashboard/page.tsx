@@ -34,6 +34,7 @@ async function DashboardContent() {
     where: { userId, completed: true },
   });
   const totalLessons = await prisma.lesson.count();
+  const overallPercent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
 
   // 3. Streak (Simplified: count of days with activity)
   const activities = await prisma.xpEvent.findMany({
@@ -42,7 +43,6 @@ async function DashboardContent() {
     orderBy: { createdAt: "desc" },
     take: 30,
   });
-  // Group by unique date string
   const uniqueDays = new Set(activities.map(a => a.createdAt.toDateString())).size;
 
   return (
@@ -85,6 +85,25 @@ async function DashboardContent() {
         />
       </div>
 
+      {/* 👇 NEW: Overall Progress Bar */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-ink-800">Overall Course Progress</h3>
+            <span className="text-sm font-bold text-brand-600">{overallPercent}%</span>
+          </div>
+          <div className="h-4 w-full overflow-hidden rounded-full bg-ink-100">
+            <div
+              className="h-full bg-brand-500 transition-all duration-1000 ease-out"
+              style={{ width: `${overallPercent}%` }}
+            />
+          </div>
+          <p className="mt-3 text-sm text-ink-500">
+            You have completed {completedLessons} out of {totalLessons} total lessons across all courses. Keep it up! 🚀
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Continue learning */}
       <Card>
         <CardHeader className="flex flex-row items-start justify-between space-y-0">
@@ -104,7 +123,7 @@ async function DashboardContent() {
              <div className="rounded-lg border border-brand-100 bg-brand-50 p-6 flex items-center justify-between">
                <div>
                  <p className="font-semibold text-brand-800">You're making progress!</p>
-                 <p className="text-sm text-brand-600">You have completed {completedLessons} lessons.</p>
+                 <p className="text-sm text-brand-600">Jump back into a course to keep learning.</p>
                </div>
                <Link href="/courses" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
                  Keep going
