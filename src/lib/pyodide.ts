@@ -44,13 +44,13 @@ export async function runPython(code: string): Promise<string> {
   let output = "";
 
   pyodide.setStdout({
-    batched: (str: string) => {
+    batched: (str: any) => {
       output += str + "\n";
     },
   });
 
   pyodide.setStderr({
-    batched: (str: string) => {
+    batched: (str: any) => {
       output += "❌ " + str + "\n";
     },
   });
@@ -72,10 +72,9 @@ export async function runTests(userCode: string, testsJson: string) {
 
   for (const test of tests) {
     let output = "";
-    pyodide.setStdout({ batched: (str) => { output += str + "\n"; } });
+    pyodide.setStdout({ batched: (str: any) => { output += str + "\n"; } });
     
     try {
-      // Combine user code with a test call
       const finalCode = `${userCode}\n\n${test.testCode}`;
       await pyodide.runPythonAsync(finalCode);
       

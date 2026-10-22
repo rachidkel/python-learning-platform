@@ -54,8 +54,15 @@ export function UsersTable({ users, courses }: { users: any[], courses: any[] })
   async function handleViewSubmissions() {
     setLoading(true);
     const data = await getUserSubmissions(selectedUser.id);
-    if ("missions" in data && "projects" in data) {
-      setSubmissions(data);
+    
+    if (data && "missions" in data && "projects" in data) {
+      // 👇 FIXED: Using (data as any) to bypass strict TS checks
+      setSubmissions({
+        missions: (data as any).missions || [],
+        projects: (data as any).projects || [],
+      });
+    } else {
+      setSubmissions({ missions: [], projects: [] });
     }
     setLoading(false);
   }
