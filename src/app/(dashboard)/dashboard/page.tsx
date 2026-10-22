@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Trophy,
   Clock,
+  Terminal,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card";
 
@@ -150,6 +151,7 @@ async function DashboardContent() {
       </Card>
 
       {/* Quick actions */}
+            {/* Quick actions */}
       <div className="grid gap-4 md:grid-cols-3">
         <QuickAction
           href="/missions"
@@ -158,16 +160,16 @@ async function DashboardContent() {
           description="Solve practical Python challenges"
         />
         <QuickAction
-          href="/revision"
-          icon={<Clock className="h-5 w-5" />}
-          title="Smart Revision"
-          description="Review missed questions"
+          href="/projects"
+          icon={<Trophy className="h-5 w-5" />}
+          title="Real-World Projects"
+          description="Build apps & earn certificates"
         />
         <QuickAction
-          href="/tutor"
-          icon={<Zap className="h-5 w-5" />}
-          title="AI Tutor"
-          description="Ask for help any time"
+          href="/playground"
+          icon={<Terminal className="h-5 w-5" />}
+          title="Python Playground"
+          description="Write & run your own code"
         />
       </div>
     </div>

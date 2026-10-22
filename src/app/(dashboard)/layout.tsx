@@ -14,6 +14,13 @@ async function AuthGate({ children }: { children: React.ReactNode }) {
     redirect("/login");
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true, email: true, image: true, role: true },
+  });
+
+  if (!user) redirect("/login");
+
   // Fetch real XP for the topbar
   const xpAggregate = await prisma.xpEvent.aggregate({
     where: { userId: session.user.id },
@@ -21,7 +28,7 @@ async function AuthGate({ children }: { children: React.ReactNode }) {
   });
   const totalXp = xpAggregate._sum.amount || 0;
 
-  // Simplified streak calculation
+  // Streak calculation
   const activities = await prisma.xpEvent.findMany({
     where: { userId: session.user.id },
     select: { createdAt: true },
@@ -30,18 +37,12 @@ async function AuthGate({ children }: { children: React.ReactNode }) {
   });
   const uniqueDays = new Set(activities.map((a) => a.createdAt.toDateString())).size;
 
-  return (
+ return (
     <>
-      <DashboardShell
-        user={session.user}
-        xp={totalXp}
-        streak={uniqueDays}
-      >
+      <DashboardShell user={user} xp={totalXp} streak={uniqueDays}>
         {children}
       </DashboardShell>
-      
-      {/* The floating AI Tutor button */}
-      <AITutor />
+      <AITutor /> {/* 👈 Add here */}
     </>
   );
 }

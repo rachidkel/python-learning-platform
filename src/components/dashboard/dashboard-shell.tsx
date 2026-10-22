@@ -9,6 +9,7 @@ interface DashboardShellProps {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    role?: string | null;
   };
   xp: number;
   streak: number;
@@ -17,13 +18,15 @@ interface DashboardShellProps {
 
 export function DashboardShell({ user, xp, streak, children }: DashboardShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isAdmin = user?.role === "ADMIN";
 
   return (
     <div className="flex min-h-screen bg-ink-50">
-      {/* Sidebar (handles its own mobile overlay) */}
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-
-      {/* Main Content Area */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        isAdmin={isAdmin}
+      />
       <div className="flex flex-1 flex-col min-w-0">
         <Topbar
           user={user}
