@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
-import { Sparkles, Loader2, CheckCircle2, XCircle, Award, RotateCcw, Trophy } from "lucide-react";
+import { Sparkles, Loader2, CheckCircle2, XCircle, Award, RotateCcw, Trophy, Lock } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export function ProjectWorkspace({ 
   projectId, 
@@ -16,6 +17,7 @@ export function ProjectWorkspace({
   isCompleted,
   requirements 
 }: any) {
+  const { data: session } = useSession();
   const [code, setCode] = useState(isCompleted ? savedCode : initialCode);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{ passed: boolean; feedback: string } | null>(null);
@@ -25,6 +27,27 @@ export function ProjectWorkspace({
   const router = useRouter();
   const reqs = JSON.parse(requirements).map((r: any) => r.description).join(", ");
   const storageKey = `project-${projectId}`;
+
+  // 👇 NEW: Block guests
+  if (!session) {
+    return (
+      <div className="rounded-xl border border-brand-200 bg-brand-50 p-12 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-brand-600 mx-auto mb-4">
+          <Lock className="h-7 w-7" />
+        </div>
+        <h3 className="text-2xl font-bold text-brand-900 mb-2">Ready to build this project?</h3>
+        <p className="text-brand-700 mb-6 max-w-md mx-auto">
+          Create a free account to submit your project and earn a certificate.
+        </p>
+        <Link 
+          href="/register" 
+          className="inline-block rounded-lg bg-brand-600 px-8 py-3 text-sm font-medium text-white hover:bg-brand-700"
+        >
+          Sign Up to Start Building
+        </Link>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!isCompleted) {

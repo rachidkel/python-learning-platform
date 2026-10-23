@@ -131,6 +131,7 @@ export default function HomePage() {
                 your browser, and get AI help whenever you're stuck.
               </p>
 
+              {/* 👇 UPDATED: Added the guest mode button */}
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/register">
                   <Button size="lg">
@@ -138,9 +139,9 @@ export default function HomePage() {
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="#courses">
+                <Link href="/courses">
                   <Button size="lg" variant="outline">
-                    Browse courses
+                    Try without an account
                   </Button>
                 </Link>
               </div>
@@ -259,9 +260,9 @@ print(fibonacci(8))
                 <CardContent className="mt-auto">
                   <div className="flex items-center justify-between text-sm text-ink-500">
                     <span>{c.lessons} lessons</span>
-                    <span className="flex items-center gap-1 text-brand-600">
+                    <Link href="/courses" className="flex items-center gap-1 text-brand-600 hover:text-brand-700">
                       Start <ArrowRight className="h-3.5 w-3.5" />
-                    </span>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

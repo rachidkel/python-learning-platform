@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, XCircle, RotateCcw } from "lucide-react";
+import { CheckCircle2, XCircle, RotateCcw, Lock } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card";
 import { cn } from "@/src/lib/utils";
 import { completeQuiz } from "@/src/lib/actions";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 interface Choice { id: string; text: string; isCorrect: boolean; }
 interface Question { id: string; prompt: string; codeSnippet?: string | null; explanation?: string | null; choices: Choice[]; }
@@ -19,6 +21,7 @@ interface QuizProps {
 }
 
 export function Quiz({ quizId, title, questions, hasPassedBefore = false }: QuizProps) {
+  const { data: session } = useSession();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -32,6 +35,29 @@ export function Quiz({ quizId, title, questions, hasPassedBefore = false }: Quiz
 
   const current = questions[currentIndex];
   const selectedChoiceObj = current?.choices.find((c) => c.id === selectedChoice);
+
+  // 👇 NEW: Block guests from taking the quiz
+  if (!session) {
+    return (
+      <Card className="border-brand-200 bg-brand-50">
+        <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-brand-600 mb-4">
+            <Lock className="h-6 w-6" />
+          </div>
+          <h3 className="text-xl font-bold text-brand-900 mb-2">Want to test your knowledge?</h3>
+          <p className="text-brand-700 mb-6 max-w-sm">
+            Create a free account to take quizzes, earn XP, and track your learning progress.
+          </p>
+          <Link 
+            href="/register" 
+            className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            Sign Up Free
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
 
   function handleSubmit() {
     if (!selectedChoice) return;

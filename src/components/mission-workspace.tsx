@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
-import { Play, CheckCircle2, XCircle, Loader2, Award, Sparkles, RotateCcw } from "lucide-react";
+import { Play, CheckCircle2, XCircle, Loader2, Award, Sparkles, RotateCcw, Lock } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { completeMission } from "@/src/lib/actions";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 export function MissionWorkspace({
   missionId,
@@ -15,6 +17,7 @@ export function MissionWorkspace({
   xpReward,
   description,
 }: any) {
+  const { data: session } = useSession();
   const [code, setCode] = useState(isCompleted ? savedCode : initialCode);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<{ passed: boolean; feedback: string } | null>(null);
@@ -23,6 +26,27 @@ export function MissionWorkspace({
   
   const router = useRouter();
   const storageKey = `mission-${missionId}`;
+
+  // 👇 NEW: Block guests
+  if (!session) {
+    return (
+      <div className="rounded-xl border border-brand-200 bg-brand-50 p-12 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-brand-600 mx-auto mb-4">
+          <Lock className="h-7 w-7" />
+        </div>
+        <h3 className="text-2xl font-bold text-brand-900 mb-2">Ready to solve this challenge?</h3>
+        <p className="text-brand-700 mb-6 max-w-md mx-auto">
+          Create a free account to write code, submit your solution, and earn XP.
+        </p>
+        <Link 
+          href="/register" 
+          className="inline-block rounded-lg bg-brand-600 px-8 py-3 text-sm font-medium text-white hover:bg-brand-700"
+        >
+          Sign Up to Start Coding
+        </Link>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!isCompleted) {
