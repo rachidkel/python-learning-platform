@@ -35,19 +35,36 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
 
   let progressRecord = null;
   if (session?.user?.id) {
-    progressRecord = await prisma.progress.upsert({
+    // 👇 FIXED: Use findUnique first, then create to prevent unique constraint errors
+    progressRecord = await prisma.progress.findUnique({
       where: {
         userId_lessonId: {
           userId: session.user.id,
           lessonId: lesson.id,
         },
       },
-      update: {},
-      create: {
-        userId: session.user.id,
-        lessonId: lesson.id,
-      },
     });
+
+    if (!progressRecord) {
+      try {
+        progressRecord = await prisma.progress.create({
+          data: {
+            userId: session.user.id,
+            lessonId: lesson.id,
+          },
+        });
+      } catch (error) {
+        // If it was just created by a race condition, fetch it again
+        progressRecord = await prisma.progress.findUnique({
+          where: {
+            userId_lessonId: {
+              userId: session.user.id,
+              lessonId: lesson.id,
+            },
+          },
+        });
+      }
+    }
   }
 
   let quizAttempts: any[] = [];
@@ -191,7 +208,6 @@ async function LessonDetail({ params }: { params: Promise<{ slug: string }> }) {
         </div>
 
         <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]">
-          {/* 👇 Added storageKey here */}
           <PythonEditor storageKey={`lesson-${lesson.slug}`} />
         </div>
       </div>
