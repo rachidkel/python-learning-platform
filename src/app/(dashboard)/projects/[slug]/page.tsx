@@ -19,18 +19,22 @@ async function ProjectDetail({ params }: { params: Promise<{ slug: string }> }) 
   let previousCode = project.starterCode;
 
   if (session?.user?.id) {
-    const submission = await prisma.projectSubmission.findFirst({
-      where: {
-        userId: session.user.id,
-        projectId: project.id,
-        passed: true,
-      },
-      orderBy: { submittedAt: "desc" },
-    });
+    try {
+      const submission = await prisma.projectSubmission.findFirst({
+        where: {
+          userId: session.user.id,
+          projectId: project.id,
+          passed: true,
+        },
+        orderBy: { submittedAt: "desc" },
+      });
 
-    if (submission) {
-      isCompleted = true;
-      previousCode = submission.code;
+      if (submission) {
+        isCompleted = true;
+        previousCode = submission.code;
+      }
+    } catch (error) {
+      console.error("Error fetching project submission:", error);
     }
   }
 

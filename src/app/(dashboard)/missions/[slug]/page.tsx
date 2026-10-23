@@ -17,7 +17,6 @@ async function MissionDetail({ params }: { params: Promise<{ slug: string }> }) 
   const mission = await prisma.mission.findUnique({ where: { slug } });
   if (!mission) notFound();
 
-  // Find the next mission
   const nextMission = await prisma.mission.findFirst({
     where: {
       order: { gt: mission.order },
@@ -25,23 +24,27 @@ async function MissionDetail({ params }: { params: Promise<{ slug: string }> }) 
     orderBy: { order: "asc" },
   });
 
-  // Check if this user has already passed this mission
+  // 👇 FIXED: Safely check if the user has already passed this mission
   let isCompleted = false;
   let previousCode = mission.starterCode;
 
   if (session?.user?.id) {
-    const lastSubmission = await prisma.missionSubmission.findFirst({
-      where: {
-        userId: session.user.id,
-        missionId: mission.id,
-        passed: true,
-      },
-      orderBy: { submittedAt: "desc" },
-    });
+    try {
+      const lastSubmission = await prisma.missionSubmission.findFirst({
+        where: {
+          userId: session.user.id,
+          missionId: mission.id,
+          passed: true,
+        },
+        orderBy: { submittedAt: "desc" },
+      });
 
-    if (lastSubmission) {
-      isCompleted = true;
-      previousCode = lastSubmission.code;
+      if (lastSubmission) {
+        isCompleted = true;
+        previousCode = lastSubmission.code;
+      }
+    } catch (error) {
+      console.error("Error fetching mission submission:", error);
     }
   }
 
@@ -66,7 +69,6 @@ async function MissionDetail({ params }: { params: Promise<{ slug: string }> }) 
         description={mission.description}
       />
 
-      {/* Next Mission Navigation */}
       <div className="flex justify-end border-t border-ink-200 pt-6 mt-8">
         {nextMission ? (
           <Link
