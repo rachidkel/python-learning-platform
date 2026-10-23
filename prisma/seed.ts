@@ -291,7 +291,7 @@ async function main() {
         }
       });
 
-      // 2. Automatically create a Quiz for this lesson
+      // 2. Create a Quiz for this lesson
       const quiz = await prisma.quiz.create({
         data: {
           lessonId: lesson.id,
@@ -300,24 +300,105 @@ async function main() {
         }
       });
 
-      // 3. Add a Question based on the lesson title
-      await prisma.question.create({
-        data: {
-          quizId: quiz.id,
-          prompt: `What is the main concept taught in "${c.lessons[i].title}"?`,
-          type: "MULTIPLE_CHOICE",
-          explanation: "Review the lesson content if you are unsure.",
-          order: 1,
-          choices: {
-            create: [
-              { text: c.lessons[i].title, isCorrect: true, order: 1 },
-              { text: "A concept from another lesson", isCorrect: false, order: 2 },
-              { text: "Something unrelated to Python", isCorrect: false, order: 3 },
-              { text: "None of the above", isCorrect: false, order: 4 },
-            ]
+      // 👇 3. REAL QUESTIONS for key lessons
+      if (lesson.slug === "hello-world") {
+        await prisma.question.create({
+          data: {
+            quizId: quiz.id, prompt: "What does `print('Hello')` do?",
+            explanation: "The print() function outputs text to the console.",
+            choices: { create: [
+              { text: "Prints the word Hello to the console", isCorrect: true, order: 1 },
+              { text: "Creates a variable named Hello", isCorrect: false, order: 2 },
+              { text: "Crashes the program", isCorrect: false, order: 3 },
+            ]}
           }
-        }
-      });
+        });
+      } else if (lesson.slug === "variables") {
+        await prisma.question.create({
+          data: {
+            quizId: quiz.id, prompt: "Which of these is a valid variable name?",
+            explanation: "Variable names cannot start with a number or contain spaces.",
+            choices: { create: [
+              { text: "my_age", isCorrect: true, order: 1 },
+              { text: "2nd_name", isCorrect: false, order: 2 },
+              { text: "first name", isCorrect: false, order: 3 },
+            ]}
+          }
+        });
+      } else if (lesson.slug === "loops") {
+        await prisma.question.create({
+          data: {
+            quizId: quiz.id, prompt: "How many times will this loop run?\n`for i in range(3):`",
+            explanation: "range(3) generates 0, 1, 2 — which is 3 iterations.",
+            choices: { create: [
+              { text: "3 times", isCorrect: true, order: 1 },
+              { text: "4 times", isCorrect: false, order: 2 },
+              { text: "Infinite", isCorrect: false, order: 3 },
+            ]}
+          }
+        });
+      } else if (lesson.slug === "conditions") {
+        await prisma.question.create({
+          data: {
+            quizId: quiz.id, prompt: "What does `if age >= 18:` check?",
+            explanation: "The `>=` operator means 'greater than or equal to'.",
+            choices: { create: [
+              { text: "If age is 18 or older", isCorrect: true, order: 1 },
+              { text: "If age is exactly 18", isCorrect: false, order: 2 },
+              { text: "If age is under 18", isCorrect: false, order: 3 },
+            ]}
+          }
+        });
+      } else if (lesson.slug === "lists") {
+        await prisma.question.create({
+          data: {
+            quizId: quiz.id, prompt: "How do you add 'apple' to the list `fruits`?",
+            explanation: "The .append() method adds an item to the end of a list.",
+            choices: { create: [
+              { text: "fruits.append('apple')", isCorrect: true, order: 1 },
+              { text: "fruits.add('apple')", isCorrect: false, order: 2 },
+              { text: "fruits + 'apple'", isCorrect: false, order: 3 },
+            ]}
+          }
+        });
+      } else if (lesson.slug === "dictionaries") {
+        await prisma.question.create({
+          data: {
+            quizId: quiz.id, prompt: "What is a dictionary in Python?",
+            explanation: "Dictionaries store key-value pairs.",
+            choices: { create: [
+              { text: "A collection of key-value pairs", isCorrect: true, order: 1 },
+              { text: "A list of numbers", isCorrect: false, order: 2 },
+              { text: "A type of loop", isCorrect: false, order: 3 },
+            ]}
+          }
+        });
+      } else if (lesson.slug === "functions") {
+        await prisma.question.create({
+          data: {
+            quizId: quiz.id, prompt: "What keyword defines a function in Python?",
+            explanation: "Functions are defined using the `def` keyword.",
+            choices: { create: [
+              { text: "def", isCorrect: true, order: 1 },
+              { text: "function", isCorrect: false, order: 2 },
+              { text: "fun", isCorrect: false, order: 3 },
+            ]}
+          }
+        });
+      } else {
+        // Fallback for any other lesson
+        await prisma.question.create({
+          data: {
+            quizId: quiz.id, prompt: `Which statement best describes "${c.lessons[i].title}"?`,
+            explanation: "Review the lesson content if you are unsure.",
+            choices: { create: [
+              { text: c.lessons[i].title, isCorrect: true, order: 1 },
+              { text: "Something unrelated", isCorrect: false, order: 2 },
+              { text: "A different concept", isCorrect: false, order: 3 },
+            ]}
+          }
+        });
+      }
     }
   }
 
