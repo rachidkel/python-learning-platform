@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/src/components/providers";
+import { Analytics } from "@vercel/analytics/react"; // 👈 Import Analytics
 import "./globals.css";
 
 const inter = Inter({
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${jetbrains.variable}`}>
       <body className="min-h-screen bg-ink-50 antialiased">
         <Providers>{children}</Providers>
+        <Analytics /> {/* 👈 Add the Analytics component here */}
       </body>
     </html>
   );
