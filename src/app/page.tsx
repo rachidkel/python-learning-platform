@@ -97,9 +97,7 @@ export default function HomePage() {
             <Link href="#courses" className="text-sm font-medium text-ink-600 hover:text-ink-900">
               Courses
             </Link>
-            <Link href="#pricing" className="text-sm font-medium text-ink-600 hover:text-ink-900">
-              Pricing
-            </Link>
+
           </nav>
 
           <div className="flex items-center gap-3">
